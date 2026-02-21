@@ -47,7 +47,7 @@
             <h3 class="font-bold text-slate-800 text-sm">Notifikasi Baru</h3>
           </div>
           <div class="max-h-64 overflow-y-auto">
-            <a href="/items" class="block p-4 hover:bg-slate-50 border-b border-slate-50 transition-colors">
+            <a href="/admin/items" class="block p-4 hover:bg-slate-50 border-b border-slate-50 transition-colors">
               <div class="flex items-start gap-3">
                 <div class="w-2 h-2 mt-1.5 bg-rose-500 rounded-full shrink-0"></div>
                 <div>

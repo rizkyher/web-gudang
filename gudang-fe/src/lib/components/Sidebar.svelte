@@ -7,14 +7,14 @@
 
   // Daftar Menu Berdasarkan Kebutuhan Anda
   const menus = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Master Barang", href: "/items", icon: Box },
-    { name: "Stock Masuk", href: "/stock-in", icon: PackagePlus },
-    { name: "Delivery Order", href: "/delivery-orders", icon: Truck },
-    { name: "Return Barang", href: "/returns", icon: RotateCcw },
-    { name: "Customer & Supplier", href: "/partners", icon: Contact },
-    { name: "Laporan", href: "/reports", icon: FileBarChart },
-    { name: "User Management", href: "/users", icon: Users },
+    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    { name: "Master Barang", href: "/admin/items", icon: Box },
+    { name: "Stock Masuk", href: "/admin/stock-in", icon: PackagePlus },
+    { name: "Delivery Order", href: "/admin/delivery-orders", icon: Truck },
+    { name: "Return Barang", href: "/admin/returns", icon: RotateCcw },
+    { name: "Customer & Supplier", href: "/admin/partners", icon: Contact },
+    { name: "Laporan", href: "/admin/reports", icon: FileBarChart },
+    { name: "User Management", href: "/admin/users", icon: Users },
   ];
 
   // Fungsi untuk mengecek apakah menu sedang aktif
@@ -23,8 +23,8 @@
 
   function isActive(href: string) {
     // Logika khusus agar '/items' aktif meskipun URL-nya '/items/1' (halaman detail)
-    if (href === "/dashboard" && currentPath === "/dashboard") return true;
-    if (href !== "/dashboard" && currentPath.startsWith(href)) return true;
+    if (href === "/admin" && currentPath === "/admin") return true;
+    if (href !== "/admin" && currentPath.startsWith(href)) return true;
     return false;
   }
 </script>
