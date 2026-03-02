@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Search, Plus, Minus, ShoppingBag, ArrowRight, Package, Box } from "@lucide/svelte";
-  import { svelte } from "@sveltejs/vite-plugin-svelte";
   import { fade, fly, scale } from "svelte/transition";
 
   // Mock Data
@@ -88,7 +87,7 @@
     {#each categories as cat}
       <button
         onclick={() => (activeCategory = cat)}
-        class="px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border-2
+        class="px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border-2 shrink-0
         {activeCategory === cat ? 'bg-slate-800 text-white border-slate-800 shadow-md scale-105' : 'bg-white text-slate-500 border-slate-100 hover:border-blue-200'}"
       >
         {cat}
@@ -96,38 +95,51 @@
     {/each}
   </div>
 
-  <div class="grid gap-4 pb-32">
+  <div class="grid gap-4 pb-56">
     {#each filteredItems as item (item.id)}
-      <div in:fly={{ y: 20, duration: 400 }} class="group bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:-translate-y-1 transition-all flex items-center gap-4">
-        <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300 border border-slate-50">
+      <div in:fly={{ y: 20, duration: 400 }} class="group bg-white p-3.5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 flex items-center gap-3.5">
+        <div class="w-16 h-16 bg-slate-50/80 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300 border border-slate-100 shrink-0">
           {item.icon || "📦"}
         </div>
 
-        <div class="flex-1 min-w-0">
-          <span class="inline-block px-2 py-0.5 bg-slate-100 text-[10px] font-bold text-slate-500 rounded-md uppercase mb-1">{item.category}</span>
-          <h3 class="font-bold text-slate-800 text-base truncate leading-tight">{item.name}</h3>
-          <div class="flex items-center gap-2 mt-1">
-            <div class="w-1.5 h-1.5 rounded-full {item.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'}"></div>
-            <p class="text-xs font-medium {item.stock > 0 ? 'text-slate-500' : 'text-rose-500'}">
-              {item.stock > 0 ? `${item.stock} ${item.unit} tersedia` : "Stok sedang kosong"}
-            </p>
+        <div class="flex-1 min-w-0 py-1">
+          <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded-md uppercase tracking-wider mb-1.5">{item.category}</span>
+          <h3 class="font-extrabold text-slate-800 text-sm truncate leading-tight tracking-tight">{item.name}</h3>
+
+          <div class="flex items-center gap-1.5 mt-1.5">
+            {#if item.stock > 0}
+              <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <p class="text-[11px] font-semibold text-slate-500">Sisa {item.stock} <span class="lowercase">{item.unit}</span></p>
+            {:else}
+              <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+              <p class="text-[11px] font-semibold text-rose-500">Stok habis</p>
+            {/if}
           </div>
         </div>
 
-        <div class="flex flex-col items-center gap-1 shrink-0 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+        <div class="flex flex-col items-center gap-1 shrink-0 bg-slate-50/80 p-1 rounded-[1.25rem] border border-slate-100 min-w-[3rem]">
           {#if item.stock > 0}
-            <button onclick={() => addToCart(item.id, item.stock)} class="w-10 h-10 rounded-xl bg-white text-blue-600 shadow-sm flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all active:scale-90">
-              <Plus size={18} />
+            <button
+              onclick={() => addToCart(item.id, item.stock)}
+              class="w-10 h-10 rounded-xl bg-white text-blue-600 shadow-sm border border-slate-100/50 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all active:scale-90"
+            >
+              <Plus size={18} strokeWidth={2.5} />
             </button>
 
             {#if cart[item.id]}
-              <span in:scale class="font-black text-slate-800 text-sm py-1">{cart[item.id]}</span>
-              <button onclick={() => removeFromCart(item.id)} class="w-10 h-10 rounded-xl bg-white text-slate-400 flex items-center justify-center hover:text-rose-500 transition-all active:scale-90">
-                <Minus size={18} />
+              <span in:scale class="font-black text-slate-800 text-sm py-1 min-h-[1.5rem] flex items-center">{cart[item.id]}</span>
+              <button
+                onclick={() => removeFromCart(item.id)}
+                class="w-10 h-10 rounded-xl bg-white text-slate-400 border border-slate-100/50 flex items-center justify-center hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-90"
+              >
+                <Minus size={18} strokeWidth={2.5} />
               </button>
             {/if}
           {:else}
-            <div class="p-2 text-slate-300">
+            <div class="h-10 w-10 flex items-center justify-center text-slate-300">
               <Box size={20} />
             </div>
           {/if}
@@ -138,22 +150,23 @@
 </main>
 
 {#if totalCartItems > 0}
-  <div in:fly={{ y: 100, duration: 500 }} out:fade class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-md z-40">
-    <button onclick={submitRequest} class="w-full bg-blue-600 text-white p-5 rounded-[2rem] shadow-2xl shadow-blue-500/40 flex items-center justify-between hover:bg-blue-700 transition-all active:scale-95 group">
+  <div in:fly={{ y: 100, duration: 500 }} out:fade class="fixed bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-md z-40">
+    <button onclick={submitRequest} class="w-full bg-slate-900 text-white p-4 rounded-3xl shadow-2xl shadow-slate-900/20 flex items-center justify-between hover:bg-slate-800 transition-all active:scale-95 group border border-slate-700">
       <div class="flex items-center gap-4">
-        <div class="relative bg-white/20 p-2 rounded-xl">
-          <ShoppingBag size={24} />
-          <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-blue-600">
+        <div class="relative bg-white/10 p-2.5 rounded-xl">
+          <ShoppingBag size={22} class="text-blue-400" />
+          <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-900 shadow-sm">
             {totalCartItems}
           </span>
         </div>
         <div class="text-left">
-          <p class="text-sm font-extrabold uppercase tracking-tight">Ajukan Sekarang</p>
-          <p class="text-xs text-blue-100">Cek kembali barang pilihanmu</p>
+          <p class="text-sm font-extrabold tracking-tight text-white">Ajukan Sekarang</p>
+          <p class="text-[11px] text-slate-400 font-medium">{totalCartItems} barang dipilih</p>
         </div>
       </div>
-      <div class="bg-white/20 p-2 rounded-full group-hover:translate-x-1 transition-transform">
-        <ArrowRight size={20} />
+
+      <div class="bg-white/10 p-2 rounded-full group-hover:translate-x-1 group-hover:bg-blue-600 transition-all duration-300">
+        <ArrowRight size={18} class="text-white" />
       </div>
     </button>
   </div>

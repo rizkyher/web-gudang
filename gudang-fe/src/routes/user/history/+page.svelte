@@ -6,7 +6,6 @@
   let activeTab = $state("Semua");
   const tabs = ["Semua", "Diproses", "Selesai"];
 
-  // Mock Data: Format item diubah menjadi array agar bisa dirender sebagai 'chips' yang cantik
   const historyData = [
     {
       id: "REQ-2602-005",
@@ -34,131 +33,121 @@
 
   let filteredHistory = $derived(activeTab === "Semua" ? historyData : historyData.filter((h) => h.status === activeTab));
 
-  // Helper untuk mendapatkan warna berdasarkan status
+  // Warna disesuaikan dengan style dashboard
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "Diproses":
-        return { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", icon: "text-amber-500" };
+        return { bg: "bg-amber-100", text: "text-amber-600", iconStyle: "bg-amber-50 text-amber-600" };
       case "Selesai":
-        return { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", icon: "text-emerald-500" };
+        return { bg: "bg-emerald-100", text: "text-emerald-600", iconStyle: "bg-emerald-50 text-emerald-600" };
       case "Ditolak":
-        return { bg: "bg-rose-50", text: "text-rose-600", border: "border-rose-200", icon: "text-rose-500" };
+        return { bg: "bg-rose-100", text: "text-rose-600", iconStyle: "bg-rose-50 text-rose-600" };
       default:
-        return { bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-200", icon: "text-slate-500" };
+        return { bg: "bg-slate-100", text: "text-slate-600", iconStyle: "bg-slate-50 text-slate-600" };
     }
   };
 </script>
 
-<header class="bg-white/90 backdrop-blur-xl px-6 pt-12 pb-4 sticky top-0 z-30 shadow-sm shadow-slate-200/50">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Riwayat</h1>
-    <button class="bg-white border border-slate-200 p-2.5 rounded-full text-slate-600 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95">
+<div class="bg-blue-600 px-6 pt-12 pb-24 rounded-b-[40px] text-white relative shadow-md">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-black tracking-tight">Riwayat</h1>
+    <button class="relative p-2.5 bg-blue-700/50 rounded-full hover:bg-blue-700 transition">
       <ClipboardList size={20} />
     </button>
   </div>
 
-  <div class="relative flex bg-slate-100 p-1.5 rounded-2xl">
+  <div class="relative flex bg-white/10 p-1.5 rounded-2xl backdrop-blur-sm border border-white/20">
     <div class="absolute inset-y-1.5 bg-white rounded-xl shadow-sm transition-all duration-300 ease-out" style="width: calc({100 / tabs.length}% - 6px); left: calc({(tabs.indexOf(activeTab) * 100) / tabs.length}% + 3px);"></div>
 
     {#each tabs as tab}
       <button
         onclick={() => (activeTab = tab)}
-        class="flex-1 py-2.5 text-sm font-bold transition-colors duration-300 rounded-xl relative z-10
-        {activeTab === tab ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800'}"
+        class="flex-1 py-2 text-sm font-bold transition-colors duration-300 rounded-xl relative z-10
+        {activeTab === tab ? 'text-blue-700' : 'text-blue-100 hover:text-white'}"
       >
         {tab}
       </button>
     {/each}
   </div>
-</header>
+</div>
 
-<main class="p-6 pb-24">
-  <div class="space-y-4">
-    {#each filteredHistory as item (item.id)}
-      {@const style = getStatusStyle(item.status)}
-      <div
-        animate:flip={{ duration: 400 }}
-        in:fly={{ y: 20, duration: 300, delay: 100 }}
-        class="group cursor-pointer bg-white border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-200 transition-all duration-300 active:scale-[0.98]"
-      >
-        <div class="flex justify-between items-start mb-4">
-          <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center border transition-colors {style.bg} {style.border} {style.icon}">
-              <Package size={22} strokeWidth={2.5} />
-            </div>
-            <div>
-              <p class="font-extrabold text-slate-800 tracking-tight text-base">{item.id}</p>
-              <div class="flex items-center gap-1.5 mt-0.5">
-                <Clock size={12} class="text-slate-400" />
-                <p class="text-[11px] font-semibold text-slate-500">{item.date}</p>
-              </div>
-            </div>
+<main class="px-6 -mt-10 relative z-10 pb-24 space-y-4">
+  {#each filteredHistory as item (item.id)}
+    {@const style = getStatusStyle(item.status)}
+    <div
+      animate:flip={{ duration: 400 }}
+      in:fly={{ y: 20, duration: 300, delay: 100 }}
+      class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all duration-300 group cursor-pointer flex flex-col gap-3"
+    >
+      <div class="flex justify-between items-start">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 {style.iconStyle}">
+            {#if item.status === "Diproses"}
+              <Clock size={20} />
+            {:else if item.status === "Selesai"}
+              <CheckCircle size={20} />
+            {:else}
+              <XCircle size={20} />
+            {/if}
+          </div>
+          <div>
+            <p class="font-bold text-slate-800 tracking-tight text-sm">{item.id}</p>
+            <p class="text-[11px] font-medium text-slate-500 mt-0.5">{item.date}</p>
+          </div>
+        </div>
+
+        <div class="shrink-0 text-right">
+          <span class="text-[10px] font-bold px-2.5 py-1 rounded-md {style.bg} {style.text} flex items-center gap-1">
+            {#if item.status === "Diproses"}
+              <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+            {/if}
+            {item.status.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      <div class="h-px w-full bg-slate-50"></div>
+
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex flex-wrap gap-1.5">
+            {#each item.items as barang}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[11px] font-medium text-slate-600">
+                <span class="font-bold text-blue-600">{barang.qty}x</span>
+                {barang.name}
+              </span>
+            {/each}
           </div>
 
-          {#if item.status === "Diproses"}
-            <span class="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              PROSES
-            </span>
-          {:else if item.status === "Selesai"}
-            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <CheckCircle size={12} strokeWidth={3} />
-              SELESAI
-            </span>
-          {:else}
-            <span class="bg-rose-100 text-rose-700 text-[10px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <XCircle size={12} strokeWidth={3} />
-              DITOLAK
-            </span>
+          {#if item.note}
+            <div class="mt-2.5 bg-rose-50 border-l-2 border-rose-400 p-2 rounded-r-lg">
+              <p class="text-[10px] font-medium text-rose-700 leading-snug">
+                {item.note}
+              </p>
+            </div>
           {/if}
         </div>
 
-        <div class="h-px w-full bg-slate-100 mb-4"></div>
-
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex-1">
-            <div class="flex flex-wrap gap-2">
-              {#each item.items as barang}
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">
-                  <span class="font-bold text-blue-600">{barang.qty}x</span>
-                  {barang.name}
-                </span>
-              {/each}
-            </div>
-
-            {#if item.note}
-              <div class="mt-3 bg-rose-50 border-l-2 border-rose-400 p-2.5 rounded-r-xl">
-                <p class="text-[11px] font-medium text-rose-700 leading-snug">
-                  {item.note}
-                </p>
-              </div>
-            {/if}
-          </div>
-
-          <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
-            <ChevronRight size={18} />
-          </div>
+        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+          <ChevronRight size={16} />
         </div>
       </div>
-    {:else}
-      <div in:fade class="flex flex-col items-center justify-center py-20 text-center">
-        <div class="relative mb-6">
-          <div class="absolute inset-0 bg-blue-100 rounded-full scale-[2] blur-3xl opacity-60"></div>
-          <div class="relative w-28 h-28 bg-white/50 backdrop-blur-sm border border-white rounded-full shadow-xl flex items-center justify-center text-blue-300">
-            <ClipboardList size={48} strokeWidth={1.5} />
-          </div>
-        </div>
-        <h3 class="text-xl font-black text-slate-800">Riwayat Kosong</h3>
-        <p class="text-sm font-medium text-slate-500 mt-2">
-          Belum ada permintaan dengan status <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">{activeTab}</span>.
-        </p>
+    </div>
+  {:else}
+    <div in:fade class="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-slate-100 shadow-sm mt-4">
+      <div class="w-20 h-20 bg-blue-50 text-blue-300 rounded-full flex items-center justify-center mb-4">
+        <ClipboardList size={36} strokeWidth={1.5} />
       </div>
-    {/each}
-  </div>
+      <h3 class="text-lg font-bold text-slate-800">Riwayat Kosong</h3>
+      <p class="text-xs font-medium text-slate-500 mt-1">
+        Tidak ada permintaan dengan status <span class="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded-md">{activeTab}</span>.
+      </p>
+    </div>
+  {/each}
 </main>
 
 <style>
   :global(body) {
-    background-color: #f8fafc; /* slate-50 background for contrast with white cards */
+    background-color: #f8fafc;
   }
 </style>
