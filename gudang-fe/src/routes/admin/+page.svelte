@@ -1,120 +1,162 @@
 <script lang="ts">
-  import { Package, Truck, RotateCcw, AlertCircle, PlusCircle, FileText, ArrowRight } from "@lucide/svelte";
+  import { Package, AlertTriangle, Clock, CheckCircle, TrendingUp, ArrowUpRight, Plus } from "@lucide/svelte";
+  import { api } from "$lib/api";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { onMount } from "svelte";
 
-  // State data (Nanti data ini diisi dari API Laravel)
-  let stats = $state([
-    { title: "Total Barang", value: "1,240", icon: Package, color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "DO Pending", value: "12", icon: Truck, color: "text-amber-600", bg: "bg-amber-100" },
-    { title: "Return Bulan Ini", value: "5", icon: RotateCcw, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Stok Kritis", value: "8", icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-100" },
+  let dashboardData = $state<any>(null);
+  let isLoading = $state(true);
+
+  onMount(async () => {
+    try {
+      dashboardData = await api.get('/dashboard-summary');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      isLoading = false;
+    }
+  });
+
+  let stats = $derived([
+    { label: "Total Barang",     value: dashboardData?.stats.total_items       ?? 0, icon: Package,       trend: null },
+    { label: "Menunggu",         value: dashboardData?.stats.pending_requests   ?? 0, icon: Clock,         trend: null },
+    { label: "Diproses Bulan Ini", value: dashboardData?.stats.processed_this_month ?? 0, icon: CheckCircle, trend: null },
+    { label: "Stok Kritis",     value: dashboardData?.stats.low_stock_count    ?? 0, icon: AlertTriangle,  trend: null },
   ]);
 
-  let recentActivities = $state([
-    { id: 1, action: "Barang Masuk", desc: "50pcs Kabel UTP Cat 6 ditambahkan", time: "10 menit yang lalu", type: "in" },
-    { id: 2, action: "Delivery Order", desc: "DO #1029 telah disetujui Finance", time: "1 jam yang lalu", type: "out" },
-    { id: 3, action: "Return Barang", desc: "2pcs Router Mikrotik dikembalikan (Rusak)", time: "3 jam yang lalu", type: "return" },
-  ]);
+  let recentRequests = $derived(dashboardData?.recent_requests ?? []);
+  let lowStockItems  = $derived(dashboardData?.low_stock_items  ?? []);
 
-  let lowStockItems = $state([
-    { code: "BRG-003", name: "Router Mikrotik", stock: 2 },
-    { code: "BRG-012", name: "Switch Hub 8 Port", stock: 1 },
-    { code: "BRG-045", name: "Tang Crimping", stock: 0 },
-  ]);
+  function statusLabel(s: string) {
+    if (s === 'pending')   return { text: 'Menunggu',  cls: 'badge-amber'  };
+    if (s === 'rejected')  return { text: 'Ditolak',   cls: 'badge-red'    };
+    if (s === 'processed') return { text: 'Diproses',  cls: 'badge-indigo' };
+    return { text: 'Selesai', cls: 'badge-green' };
+  }
 </script>
 
 <svelte:head>
-  <title>Dashboard | Khwarizmi Academy Inventory</title>
+  <title>Dashboard | Khwarizmi Inventory</title>
 </svelte:head>
 
 <div class="space-y-6">
-  <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-md">
-    <h1 class="text-3xl font-bold mb-2">Selamat Datang di Sistem Gudang Khwarizmi</h1>
-    <p class="text-blue-100 max-w-2xl">Ringkasan aktivitas dan status inventaris Anda hari ini. Perhatikan barang dengan stok kritis agar operasional tetap berjalan lancar.</p>
-  </div>
-
-  <div class="flex flex-wrap gap-4">
-    <a href="/items" class="flex items-center gap-2 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 px-5 py-3 rounded-xl font-medium text-slate-700 transition-all shadow-sm">
-      <PlusCircle size={20} />
-      Tambah Barang Baru
-    </a>
-    <a href="/delivery-orders" class="flex items-center gap-2 bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 px-5 py-3 rounded-xl font-medium text-slate-700 transition-all shadow-sm">
-      <FileText size={20} />
-      Buat Delivery Order
+  <!-- Page header -->
+  <div class="flex items-end justify-between">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Selamat datang kembali, <span class="font-medium text-gray-700">{auth.user?.name ?? "Admin"}</span></p>
+    </div>
+    <a href="/admin/approvals" class="btn btn-primary text-sm hidden sm:flex">
+      <Plus size={15} />
+      Persetujuan
     </a>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    {#each stats as stat}
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-        <div class="w-14 h-14 {stat.bg} {stat.color} rounded-2xl flex items-center justify-center">
-          <stat.icon size={28} />
+  <!-- Stats grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {#if isLoading}
+      {#each Array(4) as _}
+        <div class="card p-5 animate-pulse space-y-3">
+          <div class="h-3 bg-gray-100 rounded w-2/3"></div>
+          <div class="h-6 bg-gray-100 rounded w-1/3"></div>
         </div>
-        <div>
-          <p class="text-sm font-medium text-slate-500">{stat.title}</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{stat.value}</p>
-        </div>
-      </div>
-    {/each}
-  </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-slate-800">Aktivitas Terbaru</h3>
-        <button class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-          Lihat Semua <ArrowRight size={16} />
-        </button>
-      </div>
-
-      <div class="space-y-6">
-        {#each recentActivities as act}
-          <div class="flex gap-4 items-start">
-            <div
-              class="mt-1 w-2.5 h-2.5 rounded-full mt-1.5 shrink-0
-                            {act.type === 'in' ? 'bg-emerald-500' : act.type === 'out' ? 'bg-blue-500' : 'bg-rose-500'}"
-            ></div>
-            <div>
-              <p class="text-sm font-semibold text-slate-900">{act.action}</p>
-              <p class="text-sm text-slate-600 mt-0.5">{act.desc}</p>
-              <p class="text-xs text-slate-400 mt-1">{act.time}</p>
+      {/each}
+    {:else}
+      {#each stats as stat, i}
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{stat.label}</p>
+            <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
+              <stat.icon size={15} />
             </div>
           </div>
-        {/each}
-      </div>
-    </div>
+          <p class="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
+          {#if i === 3 && stat.value > 0}
+            <p class="text-[11px] text-red-500 mt-1 font-medium flex items-center gap-1">
+              <AlertTriangle size={11} /> Perlu restock
+            </p>
+          {/if}
+        </div>
+      {/each}
+    {/if}
+  </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
-      <div class="flex items-center gap-2 mb-6 text-rose-600">
-        <AlertCircle size={24} />
-        <h3 class="text-lg font-bold text-slate-800">Stok Kritis</h3>
+  <!-- Two column -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Recent requests -->
+    <div class="card lg:col-span-2">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-[13px] font-semibold text-gray-800">Aktivitas Terbaru</h2>
+        <a href="/admin/approvals" class="text-[12px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-0.5">
+          Lihat semua <ArrowUpRight size={12} />
+        </a>
       </div>
 
-      {#if lowStockItems.length > 0}
-        <div class="flex-1 space-y-4">
-          {#each lowStockItems as item}
-            <div class="flex items-center justify-between p-3 bg-rose-50 rounded-xl border border-rose-100">
-              <div>
-                <p class="text-sm font-bold text-slate-900">{item.name}</p>
-                <p class="text-xs text-slate-500">{item.code}</p>
-              </div>
-              <div class="text-right">
-                <span class="inline-block px-2.5 py-1 bg-rose-200 text-rose-800 text-xs font-bold rounded-lg">
-                  Sisa {item.stock}
-                </span>
+      <div class="divide-y divide-gray-50">
+        {#if isLoading}
+          {#each Array(4) as _}
+            <div class="px-5 py-3.5 flex items-center gap-3 animate-pulse">
+              <div class="w-8 h-8 bg-gray-100 rounded-lg shrink-0"></div>
+              <div class="flex-1 space-y-1.5">
+                <div class="h-3 bg-gray-100 rounded w-1/3"></div>
+                <div class="h-2.5 bg-gray-100 rounded w-1/2"></div>
               </div>
             </div>
           {/each}
-        </div>
-        <button class="mt-6 w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl transition-colors border border-slate-200"> Restock Sekarang </button>
-      {:else}
-        <div class="flex-1 flex flex-col items-center justify-center text-center p-6">
-          <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-3">
-            <Package size={32} />
+        {:else if recentRequests.length === 0}
+          <div class="px-5 py-10 text-center text-sm text-gray-400">Belum ada aktivitas</div>
+        {:else}
+          {#each recentRequests as req}
+            {@const st = statusLabel(req.status)}
+            <div class="px-5 py-3.5 flex items-center gap-3 hover:bg-gray-50/50 transition-colors">
+              <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                <Clock size={14} class="text-gray-500" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-medium text-gray-900 truncate">{req.user?.name ?? "—"}</p>
+                <p class="text-[11px] text-gray-400 truncate mt-0.5">
+                  {req.items?.map((i: any) => i.item?.name).join(", ") || "—"}
+                </p>
+              </div>
+              <span class="badge {st.cls} shrink-0">{st.text}</span>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+
+    <!-- Low stock -->
+    <div class="card">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-[13px] font-semibold text-gray-800">Stok Kritis</h2>
+        <a href="/admin/items" class="text-[12px] text-indigo-600 hover:text-indigo-800 font-medium">Kelola</a>
+      </div>
+
+      <div class="p-3 space-y-2">
+        {#if isLoading}
+          {#each Array(3) as _}
+            <div class="h-14 bg-gray-100 rounded-xl animate-pulse"></div>
+          {/each}
+        {:else if lowStockItems.length === 0}
+          <div class="py-10 text-center">
+            <div class="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-2">
+              <CheckCircle size={18} class="text-green-600" />
+            </div>
+            <p class="text-sm font-medium text-gray-700">Semua stok aman</p>
+            <p class="text-xs text-gray-400 mt-0.5">Tidak ada barang kritis</p>
           </div>
-          <p class="text-slate-800 font-medium">Semua Stok Aman!</p>
-          <p class="text-sm text-slate-500 mt-1">Tidak ada barang yang perlu di-restock saat ini.</p>
-        </div>
-      {/if}
+        {:else}
+          {#each lowStockItems as item}
+            <div class="flex items-center justify-between px-3 py-2.5 bg-red-50 rounded-xl">
+              <div class="min-w-0">
+                <p class="text-[12px] font-semibold text-gray-900 truncate">{item.name}</p>
+                <p class="text-[10px] text-gray-400">{item.code}</p>
+              </div>
+              <span class="badge badge-red shrink-0 ml-2">Sisa {item.stock}</span>
+            </div>
+          {/each}
+        {/if}
+      </div>
     </div>
   </div>
 </div>

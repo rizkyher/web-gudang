@@ -1,32 +1,42 @@
 <script lang="ts">
-  import { Search, Plus, Minus, ShoppingBag, ArrowRight, Package, Box } from "@lucide/svelte";
-  import { fade, fly, scale } from "svelte/transition";
+  import { Search, Plus, Minus, ShoppingBag, Package, X, CheckCircle } from "@lucide/svelte";
+  import { fade, fly } from "svelte/transition";
+  import { api } from "$lib/api";
+  import { onMount } from "svelte";
 
-  // Mock Data
-  const availableItems = [
-    { id: "BRG-001", name: "Spidol Snowman Hitam", category: "ATK", stock: 50, unit: "Pcs", icon: "🖋️" },
-    { id: "BRG-002", name: "Kertas HVS A4 80gr", category: "ATK", stock: 20, unit: "Rim", icon: "📄" },
-    { id: "BRG-003", name: "Tinta Printer Epson Black", category: "Elektronik", stock: 5, unit: "Botol", icon: "💧" },
-    { id: "BRG-004", name: "Kabel HDMI 2 Meter", category: "Elektronik", stock: 0, unit: "Pcs", icon: "🔌" },
-  ];
-
-  let searchQuery = $state("");
+  let availableItems = $state<any[]>([]);
+  let isLoadingData  = $state(true);
+  let searchQuery    = $state("");
   let activeCategory = $state("Semua");
-  const categories = ["Semua", "ATK", "Elektronik", "Kebersihan"];
-
-  // State Keranjang
   let cart: Record<string, number> = $state({});
+  let isSubmitting   = $state(false);
+  let submitted      = $state(false);
 
-  // Derivations
+  let categories = $derived(["Semua", ...new Set(availableItems.map(i => i.category))]);
+  let filtered   = $derived(
+    availableItems.filter(i =>
+      (activeCategory === "Semua" || i.category === activeCategory) &&
+      i.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
   let totalCartItems = $derived(Object.values(cart).reduce((a, b) => a + b, 0));
-  let filteredItems = $derived(availableItems.filter((item) => (activeCategory === "Semua" || item.category === activeCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())));
 
-  // Actions
+  onMount(async () => {
+    try {
+      const data = await api.get('/items');
+      availableItems = data.map((item: any) => ({
+        id: item.id, code: item.code, name: item.name,
+        category: item.category?.name || "Lainnya",
+        stock: item.stock, unit: item.unit,
+      }));
+    } catch (e) { console.error(e); }
+    finally { isLoadingData = false; }
+  });
+
   function addToCart(id: string, maxStock: number) {
     if (!cart[id]) cart[id] = 0;
     if (cart[id] < maxStock) cart[id] += 1;
   }
-
   function removeFromCart(id: string) {
     if (cart[id] > 0) {
       cart[id] -= 1;
@@ -34,140 +44,167 @@
     }
   }
 
-  function submitRequest() {
+  async function submitRequest() {
     if (totalCartItems === 0) return;
-    alert("Permintaan berhasil diajukan!");
-    cart = {};
+    isSubmitting = true;
+    try {
+      await api.post('/requests', {
+        notes: "Pengajuan dari aplikasi",
+        items: Object.entries(cart).map(([id, qty]) => ({ id: parseInt(id), quantity: qty }))
+      });
+      cart = {};
+      submitted = true;
+      setTimeout(() => { submitted = false; }, 3000);
+      const data = await api.get('/items');
+      availableItems = data.map((item: any) => ({
+        id: item.id, code: item.code, name: item.name,
+        category: item.category?.name || "Lainnya",
+        stock: item.stock, unit: item.unit,
+      }));
+    } catch (e: any) { alert(e.message || "Gagal mengajukan permintaan"); }
+    finally { isSubmitting = false; }
   }
 </script>
 
 <svelte:head>
-  <title>Minta Barang - Gudang IT</title>
-  <style>
-    :global(body) {
-      background-color: #f8fafc; /* slate-50 */
-      font-family: "Plus Jakarta Sans", sans-serif;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
+  <title>Minta Barang | Khwarizmi Inventory</title>
 </svelte:head>
 
-<header class="sticky top-0 z-30 bg-blue-600/95 backdrop-blur-md px-6 pt-12 pb-6 text-white shadow-lg shadow-blue-900/10 rounded-b-[2.5rem]">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <p class="text-blue-100 text-xs font-medium uppercase tracking-widest">Inventory</p>
-      <h1 class="text-2xl font-extrabold tracking-tight">Minta Barang</h1>
-    </div>
-    <div class="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-      <Package size={20} />
-    </div>
-  </div>
-
-  <div class="relative group">
-    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-      <Search size={18} class="text-blue-300 group-focus-within:text-blue-600 transition-colors" />
+<!-- Header -->
+<div class="px-5 pt-10 pb-4 bg-white border-b border-gray-100 sticky top-0 z-20">
+  <h1 class="text-[20px] font-bold text-gray-900 mb-4">Minta Barang</h1>
+  <div class="relative">
+    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+      <Search size={15} class="text-gray-400" />
     </div>
     <input
       type="text"
       bind:value={searchQuery}
-      placeholder="Cari kebutuhanmu..."
-      class="w-full bg-white/10 border border-white/20 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-blue-100 outline-none focus:bg-white focus:text-slate-800 focus:ring-4 focus:ring-blue-400/30 transition-all shadow-inner"
+      placeholder="Cari barang..."
+      class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 outline-none focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-400/15 transition-all"
     />
   </div>
-</header>
+</div>
 
-<main class="px-6 py-6 space-y-8">
-  <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
-    {#each categories as cat}
-      <button
-        onclick={() => (activeCategory = cat)}
-        class="px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border-2 shrink-0
-        {activeCategory === cat ? 'bg-slate-800 text-white border-slate-800 shadow-md scale-105' : 'bg-white text-slate-500 border-slate-100 hover:border-blue-200'}"
-      >
-        {cat}
-      </button>
-    {/each}
+<!-- Categories -->
+<div class="px-5 py-3 flex gap-2 overflow-x-auto scrollbar-none">
+  {#each categories as cat}
+    <button
+      onclick={() => (activeCategory = cat)}
+      class="px-4 py-1.5 rounded-xl text-[12px] font-semibold shrink-0 transition-all border
+        {activeCategory === cat
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}"
+    >
+      {cat}
+    </button>
+  {/each}
+</div>
+
+<!-- Success toast -->
+{#if submitted}
+  <div transition:fly={{ y: -20, duration: 300 }} class="mx-5 mb-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl p-3.5 flex items-center gap-3">
+    <CheckCircle size={16} class="shrink-0" />
+    <p class="text-[13px] font-semibold">Permintaan berhasil diajukan!</p>
   </div>
+{/if}
 
-  <div class="grid gap-4 pb-56">
-    {#each filteredItems as item (item.id)}
-      <div in:fly={{ y: 20, duration: 400 }} class="group bg-white p-3.5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 flex items-center gap-3.5">
-        <div class="w-16 h-16 bg-slate-50/80 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300 border border-slate-100 shrink-0">
-          {item.icon || "📦"}
+<!-- Item list -->
+<div class="px-5 pb-32 space-y-2">
+  {#if isLoadingData}
+    {#each Array(5) as _}
+      <div class="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse flex items-center gap-3">
+        <div class="w-12 h-12 bg-gray-100 rounded-xl shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-3 bg-gray-100 rounded w-2/5"></div>
+          <div class="h-2.5 bg-gray-100 rounded w-3/5"></div>
+        </div>
+      </div>
+    {/each}
+  {:else if filtered.length === 0}
+    <div class="py-16 text-center">
+      <div class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <Package size={20} class="text-gray-400" />
+      </div>
+      <p class="text-sm font-semibold text-gray-700">Barang tidak ditemukan</p>
+    </div>
+  {:else}
+    {#each filtered as item (item.id)}
+      <div class="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 hover:border-gray-200 transition-colors">
+        <!-- Icon placeholder -->
+        <div class="w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center shrink-0">
+          <Package size={20} class="text-gray-400" />
         </div>
 
-        <div class="flex-1 min-w-0 py-1">
-          <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded-md uppercase tracking-wider mb-1.5">{item.category}</span>
-          <h3 class="font-extrabold text-slate-800 text-sm truncate leading-tight tracking-tight">{item.name}</h3>
-
-          <div class="flex items-center gap-1.5 mt-1.5">
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <p class="text-[11px] text-gray-400 font-medium">{item.category}</p>
+          <p class="text-[14px] font-semibold text-gray-900 truncate mt-0.5">{item.name}</p>
+          <div class="flex items-center gap-1.5 mt-1">
             {#if item.stock > 0}
-              <span class="flex h-2 w-2 relative">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <p class="text-[11px] font-semibold text-slate-500">Sisa {item.stock} <span class="lowercase">{item.unit}</span></p>
+              <span class="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
+              <p class="text-[11px] text-gray-400">Sisa {item.stock} {item.unit}</p>
             {:else}
-              <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-              <p class="text-[11px] font-semibold text-rose-500">Stok habis</p>
+              <span class="w-1.5 h-1.5 bg-red-400 rounded-full inline-block"></span>
+              <p class="text-[11px] text-red-500">Stok habis</p>
             {/if}
           </div>
         </div>
 
-        <div class="flex flex-col items-center gap-1 shrink-0 bg-slate-50/80 p-1 rounded-[1.25rem] border border-slate-100 min-w-[3rem]">
-          {#if item.stock > 0}
-            <button
-              onclick={() => addToCart(item.id, item.stock)}
-              class="w-10 h-10 rounded-xl bg-white text-blue-600 shadow-sm border border-slate-100/50 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all active:scale-90"
-            >
-              <Plus size={18} strokeWidth={2.5} />
-            </button>
-
+        <!-- Cart controls -->
+        {#if item.stock > 0}
+          <div class="flex items-center gap-2 shrink-0">
             {#if cart[item.id]}
-              <span in:scale class="font-black text-slate-800 text-sm py-1 min-h-[1.5rem] flex items-center">{cart[item.id]}</span>
               <button
                 onclick={() => removeFromCart(item.id)}
-                class="w-10 h-10 rounded-xl bg-white text-slate-400 border border-slate-100/50 flex items-center justify-center hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-90"
+                class="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all active:scale-95"
               >
-                <Minus size={18} strokeWidth={2.5} />
+                <Minus size={14} />
               </button>
+              <span class="text-[14px] font-bold text-gray-900 w-5 text-center">{cart[item.id]}</span>
             {/if}
-          {:else}
-            <div class="h-10 w-10 flex items-center justify-center text-slate-300">
-              <Box size={20} />
-            </div>
-          {/if}
-        </div>
+            <button
+              onclick={() => addToCart(item.id, item.stock)}
+              class="w-8 h-8 flex items-center justify-center bg-gray-900 hover:bg-gray-700 text-white rounded-xl transition-all active:scale-95"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        {:else}
+          <span class="badge badge-gray">Habis</span>
+        {/if}
       </div>
     {/each}
-  </div>
-</main>
+  {/if}
+</div>
 
+<!-- Floating Submit -->
 {#if totalCartItems > 0}
-  <div in:fly={{ y: 100, duration: 500 }} out:fade class="fixed bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-md z-40">
-    <button onclick={submitRequest} class="w-full bg-slate-900 text-white p-4 rounded-3xl shadow-2xl shadow-slate-900/20 flex items-center justify-between hover:bg-slate-800 transition-all active:scale-95 group border border-slate-700">
-      <div class="flex items-center gap-4">
-        <div class="relative bg-white/10 p-2.5 rounded-xl">
-          <ShoppingBag size={22} class="text-blue-400" />
-          <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-900 shadow-sm">
+  <div in:fly={{ y: 80, duration: 300 }} out:fade class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-md z-40">
+    <button
+      onclick={submitRequest}
+      disabled={isSubmitting}
+      class="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-5 py-4 flex items-center justify-between transition-all active:scale-[0.99] disabled:opacity-60 shadow-xl shadow-gray-900/20"
+    >
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <ShoppingBag size={20} />
+          <span class="absolute -top-2.5 -right-2.5 bg-indigo-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
             {totalCartItems}
           </span>
         </div>
         <div class="text-left">
-          <p class="text-sm font-extrabold tracking-tight text-white">Ajukan Sekarang</p>
-          <p class="text-[11px] text-slate-400 font-medium">{totalCartItems} barang dipilih</p>
+          <p class="text-[14px] font-semibold">{isSubmitting ? "Memproses..." : "Ajukan Sekarang"}</p>
+          <p class="text-[11px] text-gray-400">{totalCartItems} barang dipilih</p>
         </div>
       </div>
-
-      <div class="bg-white/10 p-2 rounded-full group-hover:translate-x-1 group-hover:bg-blue-600 transition-all duration-300">
-        <ArrowRight size={18} class="text-white" />
-      </div>
+      {#if isSubmitting}
+        <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+      {:else}
+        <div class="w-7 h-7 bg-white/10 rounded-xl flex items-center justify-center">
+          <Plus size={15} class="rotate-45 opacity-0" />
+        </div>
+      {/if}
     </button>
   </div>
 {/if}

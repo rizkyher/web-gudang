@@ -1,106 +1,146 @@
 <script lang="ts">
-  import { Bell, Package, Clock, CheckCircle, ChevronRight, PackagePlus } from "@lucide/svelte";
+  import { Bell, PackagePlus, Clock, CheckCircle, ChevronRight, Package, ArrowUpRight } from "@lucide/svelte";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { api } from "$lib/api";
+  import { onMount } from "svelte";
 
-  // Mock Data User
-  let userName = "Pak Budi (Guru IT)";
+  let stats = $state({ total_requests_month: 0, pending_count: 0, completed_count: 0 });
+  let recentRequests = $state<any[]>([]);
+  let isLoading = $state(true);
 
-  // Mock Data Riwayat Permintaan Singkat
-  let recentRequests = $state([
-    { id: "REQ-001", items: "Laptop Asus ROG, Kabel UTP...", status: "Diproses", date: "Hari ini, 09:00", color: "text-amber-600", bg: "bg-amber-100" },
-    { id: "REQ-002", items: "Spidol, Penghapus Papan...", status: "Selesai", date: "Kemarin", color: "text-emerald-600", bg: "bg-emerald-100" },
-  ]);
+  onMount(async () => {
+    try {
+      const res = await api.get('/dashboard-summary');
+      stats = res.stats;
+      recentRequests = (res.recent_requests ?? []).map((r: any) => ({
+        id:     r.request_number,
+        items:  r.items?.map((i: any) => i.item?.name).filter(Boolean).join(", ") || "—",
+        status: r.status,
+        date:   new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+      }));
+    } catch (e) { console.error(e); }
+    finally { isLoading = false; }
+  });
+
+  function statusInfo(s: string) {
+    if (s === "pending")   return { label: "Menunggu",  cls: "badge-amber"  };
+    if (s === "rejected")  return { label: "Ditolak",   cls: "badge-red"    };
+    if (s === "processed") return { label: "Diproses",  cls: "badge-indigo" };
+    return { label: "Selesai", cls: "badge-green" };
+  }
+
+  let greeting = $derived(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Selamat Pagi";
+    if (h < 17) return "Selamat Siang";
+    return "Selamat Sore";
+  });
 </script>
 
-<div class="bg-blue-600 px-6 pt-12 pb-24 rounded-b-[40px] text-white relative shadow-md">
-  <div class="flex justify-between items-center mb-8">
+<svelte:head>
+  <title>Beranda | Khwarizmi Inventory</title>
+</svelte:head>
+
+<!-- Top area -->
+<div class="px-5 pt-10 pb-6 bg-white border-b border-gray-100">
+  <div class="flex items-start justify-between mb-5">
     <div>
-      <p class="text-blue-200 text-sm font-medium mb-0.5">Selamat Pagi,</p>
-      <h1 class="text-2xl font-black tracking-tight">{userName}</h1>
+      <p class="text-[12px] text-gray-400 font-medium">{greeting()}</p>
+      <h1 class="text-[22px] font-bold text-gray-900 tracking-tight mt-0.5">{auth.user?.name ?? "—"}</h1>
     </div>
-    <button class="relative p-2.5 bg-blue-700/50 rounded-full hover:bg-blue-700 transition active:scale-95">
-      <Bell size={20} />
-      <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-blue-600"></span>
-    </button>
+    <a
+      href="/user/notifications"
+      class="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+    >
+      <Bell size={17} />
+    </a>
   </div>
 
-  <div class="bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/20 flex items-center gap-4">
-    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-      <Package size={24} />
-    </div>
+  <!-- Quick action -->
+  <a
+    href="/user/request"
+    class="flex items-center justify-between bg-gray-900 text-white rounded-2xl px-5 py-4 hover:bg-gray-800 transition-colors group active:scale-[0.99]"
+  >
     <div>
-      <p class="text-blue-100 text-[11px] font-medium uppercase tracking-wider mb-0.5">Permintaan Bulan Ini</p>
-      <p class="text-2xl font-black leading-none">12 <span class="text-sm font-medium text-blue-200 normal-case">Barang</span></p>
+      <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Kebutuhan barang?</p>
+      <p class="text-[15px] font-semibold mt-0.5">Ajukan Permintaan</p>
     </div>
-  </div>
+    <div class="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-white/20 transition-colors">
+      <PackagePlus size={18} />
+    </div>
+  </a>
 </div>
 
-<div class="px-6 -mt-10 relative z-10 space-y-6 pb-24">
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4 group hover:shadow-md hover:border-blue-100 transition-all">
-    <div>
-      <h2 class="text-slate-800 font-black text-lg tracking-tight">Butuh Barang?</h2>
-      <p class="text-slate-500 text-xs mt-1 font-medium">Ajukan permintaan ke gudang sekarang.</p>
+<!-- Stats -->
+<div class="px-5 py-5 grid grid-cols-3 gap-3">
+  {#if isLoading}
+    {#each Array(3) as _}
+      <div class="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse space-y-2">
+        <div class="h-3 bg-gray-100 rounded w-3/4"></div>
+        <div class="h-5 bg-gray-100 rounded w-1/2"></div>
+      </div>
+    {/each}
+  {:else}
+    <div class="bg-white border border-gray-100 rounded-2xl p-4">
+      <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Bulan Ini</p>
+      <p class="text-xl font-bold text-gray-900 mt-1">{stats.total_requests_month}</p>
     </div>
-    <a href="/user/request" class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-90 shrink-0 group-hover:-translate-y-1">
-      <PackagePlus size={26} strokeWidth={2.5} />
+    <div class="bg-white border border-gray-100 rounded-2xl p-4">
+      <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Diproses</p>
+      <p class="text-xl font-bold text-gray-900 mt-1">{stats.pending_count}</p>
+    </div>
+    <div class="bg-white border border-gray-100 rounded-2xl p-4">
+      <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Selesai</p>
+      <p class="text-xl font-bold text-gray-900 mt-1">{stats.completed_count}</p>
+    </div>
+  {/if}
+</div>
+
+<!-- Recent Requests -->
+<div class="px-5 pb-6">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-[13px] font-semibold text-gray-800">Permintaan Terakhir</h2>
+    <a href="/user/history" class="text-[12px] text-indigo-600 font-medium flex items-center gap-0.5 hover:text-indigo-800">
+      Semua <ArrowUpRight size={12} />
     </a>
   </div>
 
-  <div class="grid grid-cols-2 gap-4">
-    <a href="/user/history" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-amber-300 hover:shadow-md transition-all active:scale-[0.98] block group">
-      <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-        <Clock size={20} strokeWidth={2.5} />
-      </div>
-      <p class="text-2xl font-black text-slate-800 leading-none">2</p>
-      <p class="text-[11px] text-slate-500 font-bold mt-1.5 uppercase tracking-wide">Sedang Diproses</p>
-    </a>
-    <a href="/user/history" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-300 hover:shadow-md transition-all active:scale-[0.98] block group">
-      <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-        <CheckCircle size={20} strokeWidth={2.5} />
-      </div>
-      <p class="text-2xl font-black text-slate-800 leading-none">10</p>
-      <p class="text-[11px] text-slate-500 font-bold mt-1.5 uppercase tracking-wide">Selesai Diterima</p>
-    </a>
-  </div>
-
-  <div>
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-slate-800 tracking-tight">Permintaan Terakhir</h3>
-      <a href="/user/history" class="text-xs text-blue-600 font-bold flex items-center gap-0.5 group hover:text-blue-700">
-        Lihat Semua <ChevronRight size={14} class="group-hover:translate-x-1 transition-transform" />
-      </a>
-    </div>
-
-    <div class="space-y-3">
-      {#each recentRequests as req}
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]">
-          <div class="w-12 h-12 {req.bg} {req.color} rounded-full flex items-center justify-center shrink-0">
-            {#if req.status === "Diproses"}
-              <Clock size={20} />
-            {:else}
-              <CheckCircle size={20} />
-            {/if}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold text-slate-800 truncate tracking-tight">{req.id}</p>
-            <p class="text-xs text-slate-500 truncate mt-0.5">{req.items}</p>
-            <p class="text-[10px] text-slate-400 font-medium mt-1">{req.date}</p>
-          </div>
-          <div class="shrink-0 text-right">
-            <span class="text-[10px] font-bold px-2.5 py-1 rounded-md {req.bg} {req.color} flex items-center gap-1">
-              {#if req.status === "Diproses"}
-                <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              {/if}
-              {req.status.toUpperCase()}
-            </span>
+  <div class="space-y-2">
+    {#if isLoading}
+      {#each Array(3) as _}
+        <div class="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse flex items-center gap-3">
+          <div class="w-9 h-9 bg-gray-100 rounded-xl shrink-0"></div>
+          <div class="flex-1 space-y-1.5">
+            <div class="h-3 bg-gray-100 rounded w-2/5"></div>
+            <div class="h-2.5 bg-gray-100 rounded w-3/5"></div>
           </div>
         </div>
       {/each}
-    </div>
+    {:else if recentRequests.length === 0}
+      <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center">
+        <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <Package size={20} class="text-gray-400" />
+        </div>
+        <p class="text-sm font-medium text-gray-700">Belum ada permintaan</p>
+        <p class="text-xs text-gray-400 mt-1">Klik "Minta" di bawah untuk mulai</p>
+      </div>
+    {:else}
+      {#each recentRequests as req}
+        {@const st = statusInfo(req.status)}
+        <a href="/user/history" class="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 hover:border-gray-200 transition-colors block active:bg-gray-50">
+          <div class="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
+            <Clock size={15} class="text-gray-500" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-semibold text-gray-900">{req.id}</p>
+            <p class="text-[11px] text-gray-400 truncate mt-0.5">{req.items}</p>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="badge {st.cls}">{st.label}</span>
+            <p class="text-[10px] text-gray-400">{req.date}</p>
+          </div>
+        </a>
+      {/each}
+    {/if}
   </div>
 </div>
-
-<style>
-  :global(body) {
-    background-color: #f8fafc;
-  }
-</style>
