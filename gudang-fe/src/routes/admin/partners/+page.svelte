@@ -20,7 +20,7 @@
   let isEditing = $state(false);
 
   // Form State
-  const defaultForm = { id: null, type: "customer", name: "", pic: "", phone: "", email: "", address: "" };
+  const defaultForm = { id: 0, type: "customer", name: "", pic: "", phone: "", email: "", address: "" };
   let formData = $state({ ...defaultForm });
 
   // Derived State: Filter berdasarkan Tab dan Pencarian

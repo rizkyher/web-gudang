@@ -282,7 +282,7 @@
         <tr class="border-b border-slate-200">
           <td class="py-3 px-4 text-center border-x border-slate-300">{index + 1}</td>
           {#each currentColumns as col}
-            <td class="py-3 px-4 border-r border-slate-300">{row[col.key]}</td>
+            <td class="py-3 px-4 border-r border-slate-300">{(row as any)[col.key]}</td>
           {/each}
         </tr>
       {:else}

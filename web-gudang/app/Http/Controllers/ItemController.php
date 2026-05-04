@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use Illuminate\Http\Request;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class ItemController extends Controller
 {
     public function index()
     {
-        $items = Item::with('category')->get();
+        $items = QueryBuilder::for(Item::class)
+            ->allowedFilters(['name', 'code', 'category_id'])
+            ->allowedIncludes(['category'])
+            ->defaultIncludes(['category'])
+            ->allowedSorts(['name', 'stock', 'created_at'])
+            ->get();
+            
         return response()->json($items);
     }
 

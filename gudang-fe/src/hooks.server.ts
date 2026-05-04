@@ -1,22 +1,26 @@
-// src/hooks.server.ts
+import { verifyToken } from '$lib/server/jwt';
+import { getPrisma } from '$lib/server/prisma';
 import type { Handle } from '@sveltejs/kit';
-// import { redirect } from '@sveltejs/kit'; // <-- Matikan import ini dulu
 
 export const handle: Handle = async ({ event, resolve }) => {
-    
-    // --- DIMATIKAN SEMENTARA AGAR BISA CEK UI FRONTEND ---
-    // const sessionId = event.cookies.get('session_id'); 
-    // const isPublicRoute = event.url.pathname.startsWith('/login');
+	// Inisialisasi Prisma dengan D1 Binding (jika ada di Cloudflare)
+	const db = getPrisma(event.platform?.env);
+	event.locals.db = db;
 
-    // if (!sessionId && !isPublicRoute) {
-    //     throw redirect(303, '/login');
-    // }
+	const token = event.cookies.get('token');
 
-    // if (sessionId && isPublicRoute) {
-    //     throw redirect(303, '/dashboard');
-    // }
-    // -----------------------------------------------------
+	if (token) {
+		const decoded = verifyToken(token) as any;
+		if (decoded && decoded.id) {
+			const user = await db.users.findUnique({
+				where: { id: decoded.id },
+				select: { id: true, name: true, email: true, role: true }
+			});
+			if (user) {
+				event.locals.user = user;
+			}
+		}
+	}
 
-    const response = await resolve(event);
-    return response;
+	return resolve(event);
 };

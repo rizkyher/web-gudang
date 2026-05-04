@@ -45,7 +45,7 @@ class DeliveryOrderController extends Controller
             foreach ($inventoryReq->items as $reqItem) {
                 $item = $reqItem->item;
                 if ($item->stock < $reqItem->quantity) {
-                    throw new \Exception("Stok barang {$item->name} tidak mencukupi.");
+                    abort(400, "Stok barang {$item->name} tidak mencukupi.");
                 }
                 $item->decrement('stock', $reqItem->quantity);
             }

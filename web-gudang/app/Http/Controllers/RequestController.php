@@ -5,18 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\InventoryRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class RequestController extends Controller
 {
     public function index(Request $request)
     {
-        $query = InventoryRequest::with(['user', 'items.item']);
+        $baseQuery = InventoryRequest::query();
         
         if ($request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
+            $baseQuery->where('user_id', $request->user()->id);
         }
 
-        return response()->json($query->latest()->get());
+        $requests = QueryBuilder::for($baseQuery)
+            ->allowedFilters(['status', 'request_number'])
+            ->allowedIncludes(['user', 'items.item'])
+            ->defaultIncludes(['user', 'items.item'])
+            ->allowedSorts(['created_at', 'status'])
+            ->defaultSort('-created_at')
+            ->get();
+
+        return response()->json($requests);
     }
 
     public function show(Request $request, InventoryRequest $inventoryRequest)
@@ -37,19 +47,23 @@ class RequestController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $inventoryRequest = InventoryRequest::create([
-            'request_number' => 'REQ-' . strtoupper(Str::random(6)),
-            'user_id' => $request->user()->id,
-            'status' => 'pending',
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        foreach ($validated['items'] as $item) {
-            $inventoryRequest->items()->create([
-                'item_id' => $item['id'],
-                'quantity' => $item['quantity']
+        $inventoryRequest = DB::transaction(function () use ($request, $validated) {
+            $inventoryRequest = InventoryRequest::create([
+                'request_number' => 'REQ-' . strtoupper(Str::random(6)),
+                'user_id' => $request->user()->id,
+                'status' => 'pending',
+                'notes' => $validated['notes'] ?? null,
             ]);
-        }
+
+            foreach ($validated['items'] as $item) {
+                $inventoryRequest->items()->create([
+                    'item_id' => $item['id'],
+                    'quantity' => $item['quantity']
+                ]);
+            }
+
+            return $inventoryRequest;
+        });
 
         return response()->json($inventoryRequest->load('items.item'), 201);
     }

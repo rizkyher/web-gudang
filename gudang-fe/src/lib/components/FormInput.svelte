@@ -6,6 +6,7 @@
     value = $bindable(""),
     placeholder = "",
     required = false,
+    disabled = false,
     options = [],
     hint = "",
   }: {
@@ -15,6 +16,7 @@
     value?: any;
     placeholder?: string;
     required?: boolean;
+    disabled?: boolean;
     options?: { value: string; label: string }[];
     hint?: string;
   } = $props();
@@ -31,7 +33,7 @@
   </label>
 
   {#if type === "select"}
-    <select {id} bind:value {required} class={inputClass}>
+    <select {id} bind:value {required} {disabled} class={inputClass}>
       <option value="" disabled selected>Pilih {label}...</option>
       {#each options as opt}
         <option value={opt.value}>{opt.label}</option>
@@ -43,6 +45,7 @@
       bind:value
       {placeholder}
       {required}
+      {disabled}
       rows={4}
       class="{inputClass} resize-none"
     ></textarea>
@@ -53,6 +56,7 @@
       bind:value
       {placeholder}
       {required}
+      {disabled}
       class={inputClass}
     />
   {/if}

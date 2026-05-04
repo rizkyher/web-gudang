@@ -1,8 +1,6 @@
 // src/lib/api.ts
 import { auth } from '$lib/stores/auth.svelte';
-import { PUBLIC_API_URL } from '$env/static/public';
-
-const API_BASE_URL = PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = "/api";
 
 type FetchOptions = RequestInit & {
     customHeaders?: Record<string, string>;

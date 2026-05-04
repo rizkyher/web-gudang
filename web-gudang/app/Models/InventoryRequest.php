@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class InventoryRequest extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'request_number',
+        'user_id',
+        'status',
+        'notes',
+        'admin_note',
+    ];
 
     public function user()
     {
