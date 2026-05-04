@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { DeliveryOrderSchema } from '$lib/server/schemas';
+import { serializeDeliveryOrder } from '$lib/server/api';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user) return json({ message: 'Unauthorized' }, { status: 401 });
@@ -8,13 +9,20 @@ export const GET: RequestHandler = async ({ locals }) => {
 	const deliveryOrders = await locals.db.delivery_orders.findMany({
 		include: {
 			inventory_requests: {
-				include: { users: true }
+				include: {
+					users: true,
+					inventory_request_items: {
+						include: {
+							items: true
+						}
+					}
+				}
 			}
 		},
 		orderBy: { created_at: 'desc' }
 	});
 	
-	return json(deliveryOrders);
+	return json(deliveryOrders.map(serializeDeliveryOrder));
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -83,7 +91,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			include: { inventory_requests: { include: { users: true, inventory_request_items: { include: { items: true } } } } }
 		});
 
-		return json(fullDo, { status: 201 });
+		return json(serializeDeliveryOrder(fullDo), { status: 201 });
 	} catch (error: any) {
 		return json({ message: error.message }, { status: 400 });
 	}

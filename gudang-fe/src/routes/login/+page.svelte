@@ -17,7 +17,7 @@
     isLoading = true;
     try {
       const res = await api.post('/auth/login', { email, password });
-      auth.login(res.user, res.access_token);
+      auth.login(res.user, res.token);
       goto(res.user.role === 'admin' ? '/admin' : '/user');
     } catch (err: any) {
       error = err.message || "Email atau password salah.";

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { InventoryRequestSchema } from '$lib/server/schemas';
+import { serializeRequest } from '$lib/server/api';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	if (!locals.user) return json({ message: 'Unauthorized' }, { status: 401 });
@@ -26,7 +27,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		orderBy: { created_at: 'desc' }
 	});
 	
-	return json(requests);
+	return json(requests.map(serializeRequest));
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -72,8 +73,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const fullRequest = await locals.db.inventory_requests.findUnique({
 		where: { id: inventoryRequest.id },
-		include: { inventory_request_items: { include: { items: true } } }
+		include: {
+			users: true,
+			inventory_request_items: { include: { items: true } }
+		}
 	});
 
-	return json(fullRequest, { status: 201 });
+	return json(serializeRequest(fullRequest), { status: 201 });
 };

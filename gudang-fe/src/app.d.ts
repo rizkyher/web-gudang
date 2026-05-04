@@ -1,8 +1,5 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
 		interface Locals {
 			user?: {
 				id: number;
@@ -12,15 +9,19 @@ declare global {
 			};
 			db: import('@prisma/client').PrismaClient;
 		}
+
 		interface Platform {
-			env: {
-				DB: import('@cloudflare/workers-types').D1Database;
+			env?: {
+				DB?: import('@cloudflare/workers-types').D1Database;
 			};
-			context: {
-				waitUntil(promise: Promise<any>): void;
+			context?: {
+				waitUntil(promise: Promise<unknown>): void;
 			};
-			caches: import('@cloudflare/workers-types').CacheStorage & { default: import('@cloudflare/workers-types').Cache };
+			caches?: import('@cloudflare/workers-types').CacheStorage & {
+				default: import('@cloudflare/workers-types').Cache;
+			};
 		}
+	}
 }
 
 export {};

@@ -7,6 +7,7 @@
   let isCheckingAuth = $state(true);
 
   onMount(() => {
+    auth.init();
     setTimeout(() => {
       if (auth.isAuthenticated) {
         goto(auth.user?.role === "admin" ? "/admin" : "/user");

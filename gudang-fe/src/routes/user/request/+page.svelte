@@ -26,7 +26,7 @@
       const data = await api.get('/items');
       availableItems = data.map((item: any) => ({
         id: item.id, code: item.code, name: item.name,
-        category: item.category?.name || "Lainnya",
+        category: item.category?.name || item.categories?.name || "Lainnya",
         stock: item.stock, unit: item.unit,
       }));
     } catch (e) { console.error(e); }
@@ -58,7 +58,7 @@
       const data = await api.get('/items');
       availableItems = data.map((item: any) => ({
         id: item.id, code: item.code, name: item.name,
-        category: item.category?.name || "Lainnya",
+        category: item.category?.name || item.categories?.name || "Lainnya",
         stock: item.stock, unit: item.unit,
       }));
     } catch (e: any) { alert(e.message || "Gagal mengajukan permintaan"); }

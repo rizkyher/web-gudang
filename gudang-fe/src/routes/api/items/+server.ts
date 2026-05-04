@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ItemSchema } from '$lib/server/schemas';
+import { serializeItem } from '$lib/server/api';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	if (!locals.user) return json({ message: 'Unauthorized' }, { status: 401 });
@@ -14,7 +15,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		include: { categories: true }
 	});
 	
-	return json(items);
+	return json(items.map(serializeItem));
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -44,5 +45,5 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		include: { categories: true }
 	});
 
-	return json(item, { status: 201 });
+	return json(serializeItem(item), { status: 201 });
 };

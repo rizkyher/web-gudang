@@ -43,3 +43,21 @@ export const DeliveryOrderSchema = z.object({
 	license_plate: z.string().min(1, 'Plat nomor tidak boleh kosong'),
 	notes: z.string().optional().nullable()
 });
+
+export const UserSchema = z.object({
+	name: z.string().min(1, 'Nama tidak boleh kosong'),
+	email: z.string().email('Format email tidak valid'),
+	password: z.string().min(6, 'Password minimal 6 karakter').optional().or(z.literal('')),
+	role: z.enum(['admin', 'user'])
+});
+
+export const UpdatePasswordSchema = z
+	.object({
+		current_password: z.string().min(1, 'Password saat ini wajib diisi'),
+		new_password: z.string().min(6, 'Password baru minimal 6 karakter'),
+		new_password_confirmation: z.string().min(6, 'Konfirmasi password minimal 6 karakter')
+	})
+	.refine((data) => data.new_password === data.new_password_confirmation, {
+		message: 'Konfirmasi password tidak cocok',
+		path: ['new_password_confirmation']
+	});

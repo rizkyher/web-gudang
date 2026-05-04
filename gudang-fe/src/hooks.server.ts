@@ -1,13 +1,15 @@
 import { verifyToken } from '$lib/server/jwt';
 import { getPrisma } from '$lib/server/prisma';
 import type { Handle } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Inisialisasi Prisma dengan D1 Binding (jika ada di Cloudflare)
-	const db = getPrisma(event.platform?.env);
+	const db = getPrisma(dev ? undefined : event.platform?.env);
 	event.locals.db = db;
 
-	const token = event.cookies.get('token');
+	const authHeader = event.request.headers.get('authorization');
+	const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	const token = event.cookies.get('token') ?? bearerToken;
 
 	if (token) {
 		const decoded = verifyToken(token) as any;

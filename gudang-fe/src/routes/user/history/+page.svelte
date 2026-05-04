@@ -17,7 +17,7 @@
         date:   new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
         status: r.status === 'completed' ? 'Selesai' : r.status === 'rejected' ? 'Ditolak' : 'Diproses',
         note:   r.admin_note,
-        items:  r.items.map((i: any) => ({ name: i.item?.name ?? "—", qty: i.quantity })),
+        items:  (r.items ?? []).map((i: any) => ({ name: i.item?.name ?? i.items?.name ?? "—", qty: i.quantity })),
       }));
     } catch (e) { console.error(e); }
     finally { isLoading = false; }

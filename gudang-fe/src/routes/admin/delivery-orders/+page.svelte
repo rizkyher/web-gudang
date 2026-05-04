@@ -16,8 +16,8 @@
         dbId: doItem.id,
         driver_name: doItem.driver_name,
         license_plate: doItem.license_plate,
-        request_number: doItem.inventory_request?.request_number ?? "—",
-        user_name: doItem.inventory_request?.user?.name ?? "—",
+        request_number: doItem.inventory_request?.request_number ?? doItem.inventory_requests?.request_number ?? "—",
+        user_name: doItem.inventory_request?.user?.name ?? doItem.inventory_requests?.user?.name ?? doItem.inventory_request?.users?.name ?? doItem.inventory_requests?.users?.name ?? "—",
         date: new Date(doItem.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
         status: doItem.status,
       }));

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { RequestStatusSchema } from '$lib/server/schemas';
+import { serializeRequest } from '$lib/server/api';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') return json({ message: 'Unauthorized' }, { status: 403 });
@@ -15,7 +16,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
 	const statusData = parsed.data;
 
-	const inventoryReq = await locals.db.inventory_requests.update({
+	await locals.db.inventory_requests.update({
 		where: { id },
 		data: {
 			status: statusData.status,
@@ -24,7 +25,22 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 	});
 
-	// Create notification
+	const inventoryReq = await locals.db.inventory_requests.findUnique({
+		where: { id },
+		include: {
+			users: true,
+			inventory_request_items: {
+				include: {
+					items: true
+				}
+			}
+		}
+	});
+
+	if (!inventoryReq) {
+		return json({ message: 'Request not found' }, { status: 404 });
+	}
+
 	await locals.db.notifications.create({
 		data: {
 			user_id: inventoryReq.user_id,
@@ -37,5 +53,5 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 	});
 
-	return json(inventoryReq);
+	return json(serializeRequest(inventoryReq));
 };

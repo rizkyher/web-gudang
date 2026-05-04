@@ -17,9 +17,9 @@
       requests = data.map((r: any) => ({
         id: r.request_number,
         dbId: r.id,
-        user: r.user?.name ?? "—",
-        role: r.user?.role === "admin" ? "Admin" : "Staff",
-        items: r.items?.map((i: any) => `${i.item?.name} ×${i.quantity}`).join(", ") ?? "—",
+        user: r.user?.name ?? r.users?.name ?? "—",
+        role: (r.user?.role ?? r.users?.role) === "admin" ? "Admin" : "Staff",
+        items: r.items?.map((i: any) => `${i.item?.name ?? i.items?.name} ×${i.quantity}`).join(", ") ?? "—",
         rawItems: r.items,
         date: new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
         status: r.status,

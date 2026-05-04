@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Eye, EyeOff, Check } from "@lucide/svelte";
+  import { api } from "$lib/api";
+  import { goto } from "$app/navigation";
 
   let fullName  = $state("");
   let email     = $state("");
@@ -14,7 +16,6 @@
   let success   = $state(false);
 
   const roles = [
-    { value: "admin",   label: "Admin Gudang" },
     { value: "staff",   label: "Staff Gudang" },
     { value: "finance", label: "Finance" },
   ];
@@ -50,9 +51,22 @@
     if (password.length < 8)   { error = "Password minimal 8 karakter."; return; }
     if (password !== confirm)  { error = "Konfirmasi password tidak cocok."; return; }
     isLoading = true;
-    await new Promise(r => setTimeout(r, 1400));
-    isLoading = false;
-    success = true;
+    try {
+      await api.post('/auth/register', {
+        name: fullName,
+        email,
+        password,
+        role: 'user'
+      });
+      success = true;
+      setTimeout(() => {
+        goto('/login');
+      }, 1500);
+    } catch (e: any) {
+      error = e.message || "Gagal membuat akun.";
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 
@@ -418,8 +432,8 @@
           </div>
 
           <div class="field">
-            <label class="label">Peran</label>
-            <div class="roles">
+            <label class="label" for="reg-role">Peran</label>
+            <div class="roles" id="reg-role">
               {#each roles as r}
                 <button
                   type="button"

@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import bcrypt from 'bcryptjs';
 import { signToken } from '$lib/server/jwt';
 import { LoginSchema } from '$lib/server/schemas';
+import { dev } from '$app/environment';
 
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	const body = await request.json();
@@ -34,7 +35,8 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'strict',
-		maxAge: 60 * 60 * 24 // 1 day
+		secure: !dev,
+		maxAge: 60 * 60 * 24
 	});
 
 	return json({

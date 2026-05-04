@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ItemUpdateSchema } from '$lib/server/schemas';
+import { serializeItem } from '$lib/server/api';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') return json({ message: 'Unauthorized' }, { status: 403 });
@@ -31,7 +32,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		include: { categories: true }
 	});
 
-	return json(item);
+	return json(serializeItem(item));
 };
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
