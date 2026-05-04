@@ -11,6 +11,7 @@ export type User = {
 class AuthState {
     user = $state<User | null>(null);
     token = $state<string | null>(null);
+    initialized = $state(false);
 
     // Mengecek apakah user sedang login
     get isAuthenticated() {
@@ -43,6 +44,8 @@ class AuthState {
 
     // Memuat data dari localStorage (biasanya dipanggil saat inisialisasi aplikasi di +layout.svelte root)
     init() {
+        if (this.initialized) return;
+
         if (typeof window !== "undefined") {
             const storedToken = localStorage.getItem("auth_token");
             const storedUser = localStorage.getItem("auth_user");
@@ -56,8 +59,14 @@ class AuthState {
                 }
             }
         }
+
+        this.initialized = true;
     }
 }
 
 // Export instance tunggal (singleton)
 export const auth = new AuthState();
+
+if (typeof window !== "undefined") {
+    auth.init();
+}

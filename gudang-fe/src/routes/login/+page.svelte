@@ -1,8 +1,7 @@
 <script lang="ts">
   import { Eye, EyeOff } from "@lucide/svelte";
-  import { goto } from "$app/navigation";
+  import { goto, invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
-  import { auth } from "$lib/stores/auth.svelte";
 
   let email        = $state("");
   let password     = $state("");
@@ -17,7 +16,13 @@
     isLoading = true;
     try {
       const res = await api.post('/auth/login', { email, password });
-      auth.login(res.user, res.token);
+      // Simpan ke localStorage sebagai fallback bearer token
+      if (typeof window !== "undefined") {
+        localStorage.setItem("auth_token", res.token);
+        localStorage.setItem("auth_user", JSON.stringify(res.user));
+      }
+      // Reload semua server load functions → +layout.server.ts membaca cookie baru
+      await invalidateAll();
       goto(res.user.role === 'admin' ? '/admin' : '/user');
     } catch (err: any) {
       error = err.message || "Email atau password salah.";

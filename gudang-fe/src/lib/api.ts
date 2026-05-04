@@ -27,6 +27,7 @@ async function fetchWrapper(endpoint: string, options: FetchOptions = {}) {
 
     const config: RequestInit = {
         ...options,
+        credentials: 'include',
         headers
     };
 
