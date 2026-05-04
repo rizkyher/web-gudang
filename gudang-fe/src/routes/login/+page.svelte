@@ -16,7 +16,7 @@
     if (!email || !password) { error = "Lengkapi semua field."; return; }
     isLoading = true;
     try {
-      const res = await api.post('/login', { email, password });
+      const res = await api.post('/auth/login', { email, password });
       auth.login(res.user, res.access_token);
       goto(res.user.role === 'admin' ? '/admin' : '/user');
     } catch (err: any) {
